@@ -24,3 +24,6 @@ trash/
 
 # Python virtual environment
 .venv
+
+# Tools used to pentesting
+tools/
